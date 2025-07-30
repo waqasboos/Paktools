@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PakTools Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .admin-form {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-group label {
+            font-weight: 500;
+        }
+        
+        .form-group input, 
+        .form-group select,
+        .form-group textarea {
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .image-upload {
+            border: 2px dashed #ddd;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary-color);
+        }
+        
+        .tools-list {
+            margin-top: 3rem;
+        }
+        
+        .tool-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        
+        .tool-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <h1>PakTools Admin Panel</h1>
+        
+        <form id="admin-form" class="admin-form">
+            <div class="form-group">
+                <label for="tool-name">Tool Name</label>
+                <input type="text" id="tool-name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="tool-link">Tool Link</label>
+                <input type="url" id="tool-link" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="tool-category">Category</label>
+                <select id="tool-category" required>
+                    <option value="design">Design Tools</option>
+                    <option value="editing">Editing Tools</option>
+                    <option value="daily">Daily Tools</option>
+                    <option value="business">Business Tools</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tool-desc">Description</label>
+                <textarea id="tool-desc" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Tool Image</label>
+                <div class="image-upload" id="image-upload">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 2rem;"></i>
+                    <p>Click to upload or drag and drop</p>
+                    <input type="file" id="tool-image" accept="image/*" style="display: none;">
+                    <img id="image-preview" class="image-preview">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Save Tool</button>
+        </form>
+        
+        <div class="tools-list">
+            <h2>Current Tools</h2>
+            <div id="admin-tools-container">
+                <!-- Tools will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Admin panel JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load tools from localStorage
+            let tools = JSON.parse(localStorage.getItem('paktools-tools')) || [];
+            
+            // DOM elements
+            const adminForm = document.getElementById('admin-form');
+            const toolName = document.getElementById('tool-name');
+            const toolLink = document.getElementById('tool-link');
+            const toolCategory = document.getElementById('tool-category');
+            const toolDesc = document.getElementById('tool-desc');
+            const toolImage = document.getElementById('tool-image');
+            const imageUpload = document.getElementById('image-upload');
+            const imagePreview = document.getElementById('image-preview');
+            const adminToolsContainer = document.getElementById('admin-tools-container');
+            
+            // Image upload handling
+            imageUpload.addEventListener('click', () => {
+                toolImage.click();
+            });
+            
+            toolImage.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        imagePreview.src = event.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Form submission
+            adminForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const toolData = {
+                    id: Date.now(),
+                    name: toolName.value.trim(),
+                    link: toolLink.value.trim(),
+                    category: toolCategory.value,
+                    description: toolDesc.value.trim(),
+                    image: imagePreview.src || 'assets/default-tool.jpg'
+                };
+                
+                tools.push(toolData);
+                localStorage.setItem('paktools-tools', JSON.stringify(tools));
+                
+                // Reset form
+                adminForm.reset();
+                imagePreview.style.display = 'none';
+                
+                // Update tools list
+                renderToolsList();
+            });
+            
+            // Render tools list
+            function renderToolsList() {
+                adminToolsContainer.innerHTML = '';
+                
+                tools.forEach(tool => {
+                    const toolItem = document.createElement('div');
+                    toolItem.className = 'tool-item';
+                    toolItem.innerHTML = `
+                        <div>
+                            <h3>${tool.name}</h3>
+                            <p>${tool.category} | ${tool.link}</p>
+                        </div>
+                        <div class="tool-actions">
+                            <button class="btn btn-danger" data-id="${tool.id}">Delete</button>
+                        </div>
+                    `;
+                    
+                    adminToolsContainer.appendChild(toolItem);
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.btn-danger').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const toolId = parseInt(this.dataset.id);
+                        if (confirm('Are you sure you want to delete this tool?')) {
+                            tools = tools.filter(tool => tool.id !== toolId);
+                            localStorage.setItem('paktools-tools', JSON.stringify(tools));
+                            renderToolsList();
+                        }
+                    });
+                });
+            }
+            
+            // Initialize
+            renderToolsList();
+        });
+    </script>
+</body>
+</html>
