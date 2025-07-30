@@ -1,132 +1,113 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Sample tools data
-    let tools = [
-        {
-            id: 1,
-            name: 'Image Compressor',
-            image: 'assets/image-compressor.jpg',
-            link: 'https://example.com/image-compressor',
-            category: 'design',
-            description: 'Compress your images without losing quality'
-        },
-        {
-            id: 2,
-            name: 'Video Editor',
-            image: 'assets/video-editor.jpg',
-            link: 'https://example.com/video-editor',
-            category: 'editing',
-            description: 'Edit your videos online easily'
-        },
-        {
-            id: 3,
-            name: 'PDF Converter',
-            image: 'assets/pdf-converter.jpg',
-            link: 'https://example.com/pdf-converter',
-            category: 'daily',
-            description: 'Convert PDFs to various formats'
-        },
-        {
-            id: 4,
-            name: 'Invoice Generator',
-            image: 'assets/invoice-generator.jpg',
-            link: 'https://example.com/invoice-generator',
-            category: 'business',
-            description: 'Create professional invoices quickly'
-        }
-    ];
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDzZfJwHjXQ8XQ8XQ8XQ8XQ8XQ8XQ8XQ8",
+    authDomain: "paktools.firebaseapp.com",
+    databaseURL: "https://paktools-default-rtdb.firebaseio.com",
+    projectId: "paktools",
+    storageBucket: "paktools.appspot.com",
+    messagingSenderId: "1234567890",
+    appId: "1:1234567890:web:abcdef1234567890"
+};
 
-    // Load tools from localStorage if available
-    const savedTools = localStorage.getItem('paktools-tools');
-    if (savedTools) {
-        tools = JSON.parse(savedTools);
-    }
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-    // DOM elements
-    const toolsContainer = document.getElementById('tools-container');
-    const searchInput = document.getElementById('search-input');
-    const categoryBtns = document.querySelectorAll('.category-btn');
-    const editDescBtn = document.getElementById('edit-desc-btn');
-    const siteDescription = document.querySelector('.site-description');
+// DOM elements
+const toolsGrid = document.getElementById('tools-grid');
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const categoryLinks = document.querySelectorAll('.categories li');
 
-    // Render tools
-    function renderTools(toolsToRender) {
-        toolsContainer.innerHTML = '';
-        
-        toolsToRender.forEach(tool => {
-            const toolCard = document.createElement('div');
-            toolCard.className = 'tool-card';
-            toolCard.innerHTML = `
-                <img src="${tool.image}" alt="${tool.name}" class="tool-img">
-                <div class="tool-info">
-                    <h3>${tool.name}</h3>
-                    <p>${tool.description}</p>
-                </div>
-            `;
-            
-            toolCard.addEventListener('click', () => {
-                window.open(tool.link, '_blank');
-            });
-            
-            toolsContainer.appendChild(toolCard);
+// Global variables
+let allTools = [];
+let filteredTools = [];
+
+// Fetch tools from Firebase
+function fetchTools() {
+    database.ref('tools').on('value', (snapshot) => {
+        allTools = [];
+        snapshot.forEach((childSnapshot) => {
+            const tool = childSnapshot.val();
+            tool.id = childSnapshot.key;
+            allTools.push(tool);
         });
-    }
+        filteredTools = [...allTools];
+        displayTools(filteredTools);
+    });
+}
 
-    // Filter tools by category
-    function filterTools(category) {
-        if (category === 'all') {
-            renderTools(tools);
-            return;
-        }
-        
-        const filteredTools = tools.filter(tool => tool.category === category);
-        renderTools(filteredTools);
-    }
+// Display tools in the grid
+function displayTools(tools) {
+    toolsGrid.innerHTML = '';
+    
+    tools.forEach((tool, index) => {
+        const toolCard = document.createElement('div');
+        toolCard.className = 'tool-card fade-in';
+        toolCard.style.animationDelay = `${index * 0.1}s`;
+        toolCard.innerHTML = `
+            <img src="${tool.imageUrl || 'https://via.placeholder.com/150'}" alt="${tool.name}" class="tool-image">
+            <h3 class="tool-name">${tool.name}</h3>
+            <a href="${tool.link}" target="_blank" class="tool-link">Use Tool</a>
+        `;
+        toolsGrid.appendChild(toolCard);
+    });
+}
 
-    // Search tools
-    function searchTools(query) {
-        const filteredTools = tools.filter(tool => 
-            tool.name.toLowerCase().includes(query.toLowerCase()) ||
-            tool.description.toLowerCase().includes(query.toLowerCase())
+// Search tools by name
+function searchTools(query) {
+    if (!query) {
+        filteredTools = [...allTools];
+    } else {
+        filteredTools = allTools.filter(tool => 
+            tool.name.toLowerCase().includes(query.toLowerCase())
         );
-        renderTools(filteredTools);
     }
+    displayTools(filteredTools);
+}
 
-    // Toggle description editing
-    editDescBtn.addEventListener('click', function() {
-        const isEditable = siteDescription.contentEditable === 'true';
-        siteDescription.contentEditable = !isEditable;
-        this.textContent = isEditable ? 'Edit Description' : 'Save Description';
-        
-        if (isEditable) {
-            // Save description to localStorage
-            localStorage.setItem('paktools-description', siteDescription.textContent);
+// Filter tools by category
+function filterTools(category) {
+    if (category === 'all') {
+        filteredTools = [...allTools];
+    } else {
+        filteredTools = allTools.filter(tool => tool.category === category);
+    }
+    displayTools(filteredTools);
+}
+
+// Event listeners
+searchBtn.addEventListener('click', () => {
+    searchTools(searchInput.value);
+});
+
+searchInput.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+        searchTools(searchInput.value);
+    }
+});
+
+categoryLinks.forEach(link => {
+    link.addEventListener('click', () => {
+        categoryLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        filterTools(link.dataset.category);
+    });
+});
+
+// Intersection Observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('fade-in');
+            observer.unobserve(entry.target);
         }
     });
+}, { threshold: 0.1 });
 
-    // Load saved description
-    const savedDesc = localStorage.getItem('paktools-description');
-    if (savedDesc) {
-        siteDescription.textContent = savedDesc;
-    }
-
-    // Event listeners
-    searchInput.addEventListener('input', (e) => {
-        searchTools(e.target.value);
-    });
-
-    categoryBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const category = btn.dataset.category;
-            
-            // Update active state
-            categoryBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            filterTools(category);
-        });
-    });
-
-    // Initialize
-    renderTools(tools);
+document.querySelectorAll('.tool-card').forEach(card => {
+    observer.observe(card);
 });
+
+// Initialize the app
+fetchTools();
