@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paktools - Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2d3748;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .image-upload {
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .image-upload:hover {
+            border-color: #667eea;
+        }
+
+        .image-upload i {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .tools-list {
+            margin-top: 3rem;
+        }
+
+        .tools-list h2 {
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .tool-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+        }
+
+        .tool-item img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .tool-actions button {
+            margin-left: 0.5rem;
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .btn-edit {
+            background: #38a169;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">Paktools Admin</div>
+        <div class="nav-links">
+            <a href="index.html" class="admin-link">Back to Site</a>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <h1 class="admin-title">Paktools Admin Panel</h1>
+        
+        <form id="tool-form">
+            <div class="form-group">
+                <label for="tool-name">Tool Name</label>
+                <input type="text" id="tool-name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="tool-link">Tool Link</label>
+                <input type="url" id="tool-link" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="tool-category">Category</label>
+                <select id="tool-category" required>
+                    <option value="productivity">Productivity</option>
+                    <option value="development">Development</option>
+                    <option value="design">Design</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Tool Image</label>
+                <div class="image-upload" id="image-upload">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload or drag and drop</p>
+                    <input type="file" id="tool-image" accept="image/*" style="display: none;">
+                    <img id="image-preview" class="image-preview">
+                </div>
+            </div>
+            
+            <input type="hidden" id="edit-id" value="">
+            
+            <button type="submit" class="btn btn-primary" id="save-tool">Save Tool</button>
+            <button type="button" class="btn btn-danger hidden" id="cancel-edit">Cancel</button>
+        </form>
+        
+        <div class="tools-list">
+            <h2>Current Tools</h2>
+            <div id="admin-tools-container">
+                <!-- Tools will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load tools from localStorage
+            let tools = JSON.parse(localStorage.getItem('paktools-tools')) || [];
+            let currentImage = null;
+            let editMode = false;
+            let currentEditId = null;
+
+            // DOM elements
+            const toolForm = document.getElementById('tool-form');
+            const toolName = document.getElementById('tool-name');
+            const toolLink = document.getElementById('tool-link');
+            const toolCategory = document.getElementById('tool-category');
+            const toolImageInput = document.getElementById('tool-image');
+            const imageUpload = document.getElementById('image-upload');
+            const imagePreview = document.getElementById('image-preview');
+            const saveToolBtn = document.getElementById('save-tool');
+            const cancelEditBtn = document.getElementById('cancel-edit');
+            const editIdInput = document.getElementById('edit-id');
+            const adminToolsContainer = document.getElementById('admin-tools-container');
+
+            // Image upload handling
+            imageUpload.addEventListener('click', () => {
+                toolImageInput.click();
+            });
+
+            toolImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        imagePreview.src = event.target.result;
+                        imagePreview.style.display = 'block';
+                        currentImage = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Drag and drop for image
+            imageUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                imageUpload.style.borderColor = '#667eea';
+            });
+
+            imageUpload.addEventListener('dragleave', () => {
+                imageUpload.style.borderColor = '#ddd';
+            });
+
+            imageUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                imageUpload.style.borderColor = '#ddd';
+                
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.match('image.*')) {
+                    toolImageInput.files = e.dataTransfer.files;
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        imagePreview.src = event.target.result;
+                        imagePreview.style.display = 'block';
+                        currentImage = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Form submission
+            toolForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const toolData = {
+                    id: editMode ? currentEditId : Date.now(),
+                    name: toolName.value.trim(),
+                    link: toolLink.value.trim(),
+                    category: toolCategory.value,
+                    image: currentImage || 'https://via.placeholder.com/300x150?text=Tool+Image'
+                };
+                
+                if (editMode) {
+                    // Update existing tool
+                    tools = tools.map(tool => 
+                        tool.id === currentEditId ? toolData : tool
+                    );
+                } else {
+                    // Add new tool
+                    tools.push(toolData);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('paktools-tools', JSON.stringify(tools));
+                
+                // Reset form
+                resetForm();
+                renderToolsList();
+            });
+
+            // Cancel edit
+            cancelEditBtn.addEventListener('click', resetForm);
+
+            // Render tools list
+            function renderToolsList() {
+                adminToolsContainer.innerHTML = '';
+                
+                if (tools.length === 0) {
+                    adminToolsContainer.innerHTML = '<p>No tools added yet.</p>';
+                    return;
+                }
+                
+                tools.forEach(tool => {
+                    const toolItem = document.createElement('div');
+                    toolItem.className = 'tool-item';
+                    toolItem.innerHTML = `
+                        <div class="tool-info">
+                            <img src="${tool.image}" alt="${tool.name}">
+                            <div>
+                                <h3>${tool.name}</h3>
+                                <p>${tool.link}</p>
+                                <span class="category-badge">${tool.category}</span>
+                            </div>
+                        </div>
+                        <div class="tool-actions">
+                            <button class="btn btn-edit edit-tool" data-id="${tool.id}">Edit</button>
+                            <button class="btn btn-danger delete-tool" data-id="${tool.id}">Delete</button>
+                        </div>
+                    `;
+                    
+                    adminToolsContainer.appendChild(toolItem);
+                });
+                
+                // Add event listeners to edit and delete buttons
+                document.querySelectorAll('.edit-tool').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const toolId = parseInt(this.dataset.id);
+                        editTool(toolId);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-tool').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const toolId = parseInt(this.dataset.id);
+                        deleteTool(toolId);
+                    });
+                });
+            }
+
+            // Edit tool
+            function editTool(id) {
+                const toolToEdit = tools.find(tool => tool.id === id);
+                if (toolToEdit) {
+                    editMode = true;
+                    currentEditId = id;
+                    
+                    toolName.value = toolToEdit.name;
+                    toolLink.value = toolToEdit.link;
+                    toolCategory.value = toolToEdit.category;
+                    
+                    if (toolToEdit.image) {
+                        imagePreview.src = toolToEdit.image;
+                        imagePreview.style.display = 'block';
+                        currentImage = toolToEdit.image;
+                    }
+                    
+                    editIdInput.value = id;
+                    saveToolBtn.textContent = 'Update Tool';
+                    cancelEditBtn.classList.remove('hidden');
+                    
+                    // Scroll to form
+                    toolForm.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            // Delete tool
+            function deleteTool(id) {
+                if (confirm('Are you sure you want to delete this tool?')) {
+                    tools = tools.filter(tool => tool.id !== id);
+                    localStorage.setItem('paktools-tools', JSON.stringify(tools));
+                    renderToolsList();
+                    
+                    if (editMode && currentEditId === id) {
+                        resetForm();
+                    }
+                }
+            }
+
+            // Reset form
+            function resetForm() {
+                toolForm.reset();
+                imagePreview.src = '';
+                imagePreview.style.display = 'none';
+                currentImage = null;
+                editMode = false;
+                currentEditId = null;
+                editIdInput.value = '';
+                saveToolBtn.textContent = 'Save Tool';
+                cancelEditBtn.classList.add('hidden');
+                toolImageInput.value = '';
+            }
+
+            // Initialize
+            renderToolsList();
+        });
+    </script>
+</body>
+</html>
